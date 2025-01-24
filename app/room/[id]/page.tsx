@@ -12,7 +12,7 @@ export default function ChatRoom({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams();
   const username = searchParams.get("username") || "Anonymous Astronaut";
 
-  type MessagesType = { sender: string; role: string; content: string }[];
+  type MessagesType = { sender: string; content: string }[];
 
   const [messages, setMessages] = useState<MessagesType>([]);
   const [input, setInput] = useState<string>("");
@@ -25,10 +25,13 @@ export default function ChatRoom({ params }: { params: { id: string } }) {
     e.preventDefault();
 
     if (input) {
-      setMessages((prev) => [
-        ...prev,
-        { sender: username, role: "user", content: input },
-      ]);
+      setMessages((prev) => [...prev, { sender: username, content: input }]);
+
+      socket.emit("message", {
+        room: params.id,
+        message: input,
+        sender: username,
+      });
 
       setInput("");
     }
@@ -42,16 +45,17 @@ export default function ChatRoom({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     socket.on("user_joined", (userId) => {
-      console.log(`User ${userId} joined the room`);
-
       setMessages((prev) => [
         ...prev,
         {
-          sender: "Cosmic AI",
-          role: "system",
+          sender: "system",
           content: `User ${userId} joined the room`,
         },
       ]);
+    });
+
+    socket.on("message", (message) => {
+      setMessages((prev) => [...prev, message]);
     });
 
     return () => {
@@ -80,15 +84,17 @@ export default function ChatRoom({ params }: { params: { id: string } }) {
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3 }}
                   className={`p-3 rounded-lg ${
-                    message.role === "user"
+                    message.sender === "system"
+                      ? "bg-gradient-to-r from-pink-400 to-yellow-300 text-gray-900"
+                      : message.sender === username
                       ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white ml-auto"
                       : "bg-gradient-to-r from-blue-500 to-green-500 text-white"
                   } max-w-[80%] break-words`}
                 >
                   <strong>
-                    {message.role === "user" ? username : "Cosmic AI"}:
-                  </strong>{" "}
-                  {message.content}
+                    {message.sender === username ? "Me" : message.sender}
+                  </strong>
+                  :{message.content}
                 </motion.div>
               ))}
             </AnimatePresence>

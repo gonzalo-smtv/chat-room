@@ -35,6 +35,14 @@ app.prepare().then(() => {
 
       socket.to(room).emit("user_left", username);
     });
+
+    socket.on("message", ({ room, message, sender }) => {
+      console.log(`> Message received in room ${room}: ${message}`);
+      socket.to(room).emit("message", {
+        sender: sender,
+        content: message,
+      });
+    });
   });
 
   httpServer
