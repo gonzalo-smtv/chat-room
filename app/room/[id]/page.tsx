@@ -1,6 +1,5 @@
 "use client";
 
-// import { useChat } from "ai/react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -12,16 +11,6 @@ import { socket } from "@/lib/socketClient";
 export default function ChatRoom({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams();
   const username = searchParams.get("username") || "Anonymous Astronaut";
-  // const { messages, input, handleInputChange, handleSubmit } = useChat({
-  //   api: "/api/chat",
-  //   initialMessages: [
-  //     {
-  //       id: "chatai",
-  //       role: "system",
-  //       content: `You are in a cosmic chat room. The current user's name is ${username}. Respond with space-themed messages.`,
-  //     },
-  //   ],
-  // });
 
   type MessagesType = { sender: string; role: string; content: string }[];
 
