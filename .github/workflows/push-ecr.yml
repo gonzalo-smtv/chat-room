@@ -1,0 +1,57 @@
+name: "Push ECR"
+run-name: "Deploy to ECR"
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write # used by OIDC
+  contents: read
+  pull-requests: write
+
+env:
+  # Configuring OpenID Connect in Amazon Web Services
+  # https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-amazon-web-services
+  AWS_ACCOUNT_ID: 203918842704
+  AWS_ROLE_TO_ASSUME: arn:aws:iam::203918842704:role/github-flow
+  AWS_REGION: us-east-2
+  # TODO: create a repository in ECR and update the name here
+  AWS_REPOSITORY: lemon-tasks-repository
+  APP_VERSION: chat-room
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: get caller identity2
+        run: |
+          aws sts get-caller-identity
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | \
+          docker login --username AWS --password-stdin ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+
+      - name: Build the Docker image
+        run: |
+          docker build -t chat-room-image -f ./docker/Dockerfile .
+
+      - name: Tag the Docker image
+        run: |
+          docker tag docker.io/library/chat-room-image ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.AWS_REPOSITORY }}:${{ env.APP_VERSION }}
+
+      - name: Push Docker image to ECR
+        run: |
+          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.AWS_REPOSITORY }}:${{ env.APP_VERSION }}
